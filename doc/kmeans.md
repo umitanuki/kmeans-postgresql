@@ -40,6 +40,8 @@ Then decide initial values by the next formula:
 where `i` varies from 0 to k-1. This means that initial vector elements
 are decided as the liner interpolation from min to max divided by k.
 
+See input/kmeans.source as a sample to call the function.
+
 Support
 -------
 
