@@ -11,8 +11,8 @@ Synopsis
 Description
 -----------
 
-This module implements K-means classification algorithm as a
-user-defined window function in PostgreSQL. K-means classification
+This module implements K-means clustering algorithm as a
+user-defined window function in PostgreSQL. K-means clustering
 is a simple way to classify data set by N-dimension vector.
 
 It is known that the algorithm depends on how to define

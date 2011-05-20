@@ -1,7 +1,7 @@
 kmeans-postgresql
 =================
 
-This module implements k-means classification algorithm in
+This module implements k-means clustering algorithm in
 PostgreSQL. It is a truely user-defined window function out of
 builtin functions, written in C.
 
