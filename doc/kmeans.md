@@ -1,0 +1,80 @@
+kmeans 1.0.0
+============
+
+Synopsis
+--------
+
+    SELECT kmeans(ARRAY[x, y, z], 10) OVER (), * FROM samples;
+    SELECT kmeans(ARRAY[x, y, z], 2, ARRAY[0.5, 0.5, 1.0, 1.0]) OVER (), * FROM samples;
+    SELECT kmeans(ARRAY[x, y, z], 2, ARRAY[ARRAY[0.5, 0.5], ARRAY[1.0, 1.0]]) OVER (PARTITION BY group_key), * FROM samples
+
+Description
+-----------
+
+This module implements K-means classification algorithm as a
+user-defined window function in PostgreSQL. K-means classification
+is a simple way to classify data set by N-dimension vector.
+
+It is known that the algorithm depends on how to define
+initial mean vectors. So the module provides two singature,
+one for auto-initialization and the other for user-given
+initial vectors.
+
+The `kmeans` function calculates and returns class number which starts from
+0, by using input vectors. The first argument is the vector, represented
+by array of float8. You must give the same-length 1-dimension array across
+all the input rows. The second argument is an integer K in "K-means", the
+number of class you want to partition. The third argument is optional,
+an array of vector which represents initial mean vectors. Since the
+algorithm is sensitive with initial mean vectors, and although the function
+calculates them by input vectors in the first form, you may sometimes want
+to give fixed mean vectors. The vectors can be passed as 1-d array or 2-d
+array of float8. In case of 1-d, the length of it must match k * lengthof(vector).
+
+If the third argumen, initial mean vector, is not given, it scans
+all the input vectors and stores min/max for each element of vector.
+Then decide initial values by the next formula:
+
+    init = (max - min) * (i + 1 ) / (k + 1) + min
+
+where `i` varies from 0 to k-1. This means that initial vector elements
+are decided as the liner interpolation from min to max divided by k.
+
+Support
+-------
+
+This library is stored in an open [GitHub
+repository](http://github.com/umitanuki/kmeans-postgresql).
+Feel free to fork and contribute! Please file bug reports
+via [GitHub Issues](http://github.com/umitanuki/kmeans-postgresql/issues/).
+
+Author
+------
+
+[Hitoshi Harada](mailto:umi.tanuki@gmail.com)
+
+Copyright and License
+---------------------
+
+Copyright (c) Hitoshi Harada
+
+This module is free software; you can redistribute it and/or modify it under
+the [PostgreSQL License](http://www.opensource.org/licenses/postgresql).
+
+Permission to use, copy, modify, and distribute this software and its 
+documentation for any purpose, without fee, and without a written agreement is
+hereby granted, provided that the above copyright notice and this paragraph
+and the following two paragraphs appear in all copies.
+
+In no event shall Hitoshi Harada be liable to any party for direct,
+indirect, special, incidental, or consequential damages, including
+lost profits, arising out of the use of this software and its documentation,
+even if Hitoshi Harada has been advised of the possibility of such damage.
+
+Hitoshi Harada specifically disclaim any warranties,
+including, but not limited to, the implied warranties of merchantability and 
+fitness for a particular purpose. The software provided hereunder is on an "as 
+is" basis, and Hitoshi Harada has no obligations to provide maintenance,
+support, updates, enhancements, or modifications.
+
+
