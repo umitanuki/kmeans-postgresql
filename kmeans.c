@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "fmgr.h"
+#include "miscadmin.h"
 #include "windowapi.h"
 #include "lib/stringinfo.h"
 #include "utils/array.h"
@@ -107,8 +108,6 @@ update_mean(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 		{
 			if (mean_count[klass] > 0)
 				mean[klass * dim + a] = mean_sum[klass * dim + a] / mean_count[klass];
-			else
-				mean[klass * dim + a] = 0.0;
 		}
 	}
 	pfree(mean_sum);
@@ -129,6 +128,18 @@ J(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 		sum += calc_distance(&inputs[i * dim], &mean[r[i] * dim], dim);
 	}
 	return sum;
+}
+
+static void
+initialize_mean(myvector inputs, int dim, int N, int k, myvector mean, int *r)
+{
+	int		i;
+
+	for (i = 0; i < N; i++)
+	{
+		r[i] = i % k;
+	}
+	update_mean(inputs, dim, N, k, mean, r);
 }
 
 #ifdef KMEANS_DEBUG
@@ -166,8 +177,9 @@ calc_kmeans(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 	target = J(inputs, dim, N, k, mean, r);
 	for (;;)
 	{
-		float8	diff;
 
+		/* it's good to check here, for avoid infinite loop */
+		CHECK_FOR_INTERRUPTS();
 		update_r(inputs, dim, N, k, mean, r);
 		update_mean(inputs, dim, N, k, mean, r);
 		new_target = J(inputs, dim, N, k, mean, r);
@@ -176,8 +188,7 @@ calc_kmeans(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 		 * if all the classification stay, diff must be 0.0,
 		 * which means we can go out!
 		 */
-		diff = target - new_target;
-		if (diff < 0.01)
+		if (target == new_target)
 			break;
 		target = new_target;
 	}
@@ -251,6 +262,8 @@ kmeans_impl(PG_FUNCTION_ARGS, bool initial_mean_supplied)
 		 * initial mean vectors. need improve how to define them.
 		 */
 		mean = (myvector) palloc(SIZEOF_V(dim) * k);
+		/* only the result is stored in the partition local memory */
+		r = context->result;
 		if (initial_mean_supplied)
 		{
 			ArrayType	   *init = DatumGetArrayTypeP(
@@ -271,14 +284,9 @@ kmeans_impl(PG_FUNCTION_ARGS, bool initial_mean_supplied)
 		}
 		else
 		{
-			/* deduce dividing points (too naive, but easy) */
-			for (i = 0; i < k; i++)
-				for (a = 0; a < dim; a++)
-					mean[i * dim + a] = (maxlist[a] - minlist[a]) *
-						(i + 1) / (dim + 1) + minlist[a];
+			initialize_mean(inputs, dim, N, k, mean, r);
+			kmeans_debug(mean, dim, k);
 		}
-		/* only the result is stored in the partition local memory */
-		r = context->result;
 		/* run it! */
 		calc_kmeans(inputs, dim, N, k, mean, r);
 		context->isdone = true;
