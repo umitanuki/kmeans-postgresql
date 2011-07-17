@@ -133,13 +133,12 @@ J(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 static void
 initialize_mean(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 {
-	int		i;
+	int		klass;
 
-	for (i = 0; i < N; i++)
+	for (klass = 0; klass < k; klass++)
 	{
-		r[i] = i % k;
+		memcpy(&mean[klass * dim], &inputs[(klass % N) * dim], SIZEOF_V(dim));
 	}
-	update_mean(inputs, dim, N, k, mean, r);
 }
 
 #ifdef KMEANS_DEBUG
