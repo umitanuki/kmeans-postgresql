@@ -32,6 +32,7 @@ typedef float8 *myvector;
 
 typedef struct{
 	bool	isdone;
+	bool	isnull;
 	int		result[1];
 	/* variable length */
 } kmeans_context;
@@ -199,18 +200,32 @@ kmeans_impl(PG_FUNCTION_ARGS, bool initial_mean_supplied)
 	if (!context->isdone)
 	{
 		int			dim, k, N;
+		Datum		arg;
 		bool		isnull, isout;
 		myvector	inputs, mean, maxlist, minlist;
 		int		   *r;
 		int			i, a;
 		ArrayType  *x;
 
-		x = DatumGetArrayTypeP(
-				WinGetFuncArgCurrent(winobj, 0, &isnull));
+		arg = WinGetFuncArgCurrent(winobj, 0, &isnull);
+		if (!isnull)
+			x = DatumGetArrayTypeP(
+					WinGetFuncArgCurrent(winobj, 0, &isnull));
 		KMEANS_CHECK_V(x, ARR_DIMS(x)[0], isnull);
 
 		dim = ARR_DIMS(x)[0];
 		k = DatumGetInt32(WinGetFuncArgCurrent(winobj, 1, &isnull));
+		/*
+		 * Since window function ignores STRICT mark,
+		 * return NULL simply.
+		 */
+		if (isnull || k <= 0)
+		{
+			context->isdone = true;
+			context->isnull = true;
+			PG_RETURN_NULL();
+		}
+
 		N = (int) WinGetPartitionRowCount(winobj);
 		inputs = (myvector) palloc(SIZEOF_V(dim) * N);
 		maxlist = (myvector) palloc(SIZEOF_V(dim));
@@ -268,6 +283,9 @@ kmeans_impl(PG_FUNCTION_ARGS, bool initial_mean_supplied)
 		calc_kmeans(inputs, dim, N, k, mean, r);
 		context->isdone = true;
 	}
+
+	if (context->isnull)
+		PG_RETURN_NULL();
 
 	curpos = WinGetCurrentPosition(winobj);
 	PG_RETURN_INT32(context->result[curpos]);

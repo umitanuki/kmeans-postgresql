@@ -21,3 +21,10 @@ LIMIT 10;
       0 |  0.565619 | -1.637858
 (10 rows)
 
+SELECT kmeans(ARRAY[val1, val2], NULL) OVER ()
+FROM testdata LIMIT 1;
+ kmeans 
+--------
+       
+(1 row)
+

@@ -12,3 +12,6 @@ SELECT kmeans(ARRAY[val1, val2], 3,
 FROM testdata
 LIMIT 10;
 
+SELECT kmeans(ARRAY[val1, val2], NULL) OVER ()
+FROM testdata LIMIT 1;
+
