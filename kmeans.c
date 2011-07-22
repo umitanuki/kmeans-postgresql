@@ -65,18 +65,23 @@ update_r(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 		float8		curr_dist;
 		int			curr_klass;
 
+		curr_dist = calc_distance(&inputs[i * dim], &mean[0], dim);
+		curr_klass = 0;
 		/*
-		 * Search nearst mean point.
+		 * Search the nearst mean point.
 		 */
-		for (klass = 0; klass < k; klass++)
+		for (klass = 1; klass < k; klass++)
 		{
 			dist = calc_distance(&inputs[i * dim], &mean[klass * dim], dim);
-			if (klass == 0 || dist < curr_dist)
+			if (dist < curr_dist)
 			{
 				curr_dist = dist;
 				curr_klass = klass;
 			}
 		}
+#ifdef KMEANS_DEBUG
+elog(LOG, "r[%d] = %d -> %d", i, r[i], curr_klass);
+#endif
 		r[i] = curr_klass;
 	}
 }
@@ -130,15 +135,98 @@ J(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 	return sum;
 }
 
+/*
+ * initialize_mean
+ * determine initial mean vectors (centroids) when they aren't specified.
+ * The way to initialize is hard; it decides the result quality.
+ */
 static void
 initialize_mean(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 {
-	int		klass;
+	myvector	minvec = (myvector) palloc0(SIZEOF_V(dim));
+	myvector	maxvec = (myvector) palloc0(SIZEOF_V(dim));
+	myvector	midvec = (myvector) palloc0(SIZEOF_V(dim));
+	int			i, j, a, klass, sidx;
+	int		   *seen;
 
+	/*
+	 * First, scan all input vectors and find min/max values
+	 * for each dimension (i.e. take largest space)
+	 */
+	for (i = 0; i < N; i++)
+	{
+		if (i == 0)
+		{
+			for (a = 0; a < dim; a++)
+			{
+				minvec[a] = maxvec[a] = inputs[i * dim + a];
+			}
+		}
+		else
+		{
+			for (a = 0; a < dim; a++)
+			{
+				if (minvec[a] > inputs[i * dim + a])
+				{
+					minvec[a] = inputs[i * dim + a];
+				}
+				if (maxvec[a] < inputs[i * dim + a])
+				{
+					maxvec[a] = inputs[i * dim + a];
+				}
+			}
+		}
+	}
+
+	/*
+	 * array to store vectors which were chosen until
+	 * the iteration. We try to avoid duplicated assignment.
+	 */
+	seen = (int *) palloc0(sizeof(int) * N);
+	sidx = 0;
 	for (klass = 0; klass < k; klass++)
 	{
-		memcpy(&mean[klass * dim], &inputs[(klass % N) * dim], SIZEOF_V(dim));
+		float8	curr_dist, dist;
+		int		curr_idx = 0;
+
+		/*
+		 * split vector space linearly. Then find nearest point
+		 * and take it as a centroid.
+		 */
+		for (a = 0; a < dim; a++)
+		{
+			midvec[a] = (maxvec[a] - minvec[a]) *
+						((float8) (klass + 1) / (float8) (k + 1)) + minvec[a];
+		}
+		for (i = 0; i < N; i++)
+		{
+			bool	found = false;
+
+			/*
+			 * If this element is taken by another centroid,
+			 * then take another for this loop as far as possible.
+			 */
+			for (j = 0; j < sidx; j++)
+			{
+				if (seen[j] == i)
+					found = true;
+			}
+			if (found)
+				continue;
+			dist = calc_distance(midvec, &inputs[i * dim], dim);
+			if (curr_idx == 0 || dist < curr_dist)
+			{
+				/* the input vector seems nearer */
+				curr_dist = dist;
+				curr_idx = i;
+			}
+		}
+		memcpy(&mean[klass * dim], &inputs[curr_idx * dim], SIZEOF_V(dim));
+		seen[sidx++] = curr_idx;
 	}
+	pfree(minvec);
+	pfree(maxvec);
+	pfree(midvec);
 }
 
 #ifdef KMEANS_DEBUG
@@ -164,6 +252,16 @@ kmeans_debug(myvector mean, int dim, int k)
 #define kmeans_debug(mean, dim, k)
 #endif // KMEANS_DEBUG
 
+/*
+ * calc_kmeans
+ * The main body of kmean calculation.
+ * inputs	: all of elements to be clustered by kmeans
+ * dim		: dimension of element, namely myvector has dim floats in each.
+ * N		: the number of input vectors
+ * k		: the number to cluster
+ * mean		: initial mean vectors (centroids)
+ * r		: (out) an array to put answer cluster ids
+ */
 static int *
 calc_kmeans(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 {
