@@ -31,16 +31,29 @@ calculates them by input vectors in the first form, you may sometimes want
 to give fixed mean vectors. The vectors can be passed as 1-d array or 2-d
 array of float8. In case of 1-d, the length of it must match k * lengthof(vector).
 
-If the third argumen, initial mean vector, is not given, it scans
+If the third argument, initial centroids, is not given, it scans
 all the input vectors and stores min/max for each element of vector.
-Then decide initial values by the next formula:
+Then decide initial hypothetical vector elements by the next formula:
 
-    init = (max - min) * (i + 1 ) / (k + 1) + min
+    init = (max - min) * (i + 1) / (k + 1) + min
 
-where `i` varies from 0 to k-1. This means that initial vector elements
+where `i` varies from 0 to k-1. This means that the vector elements
 are decided as the liner interpolation from min to max divided by k.
+Then one of the input vectors nearest to this hypothetical vector
+is picked up as the centroid. Note that input vector is not picked
+more than twice as far as possible, to gain good result.
 
 See input/kmeans.source as an example to call the function.
+
+History
+-------
+
+### v1.1.0 (2011-07-22)
+  * Fix NULL input case, thanks to the report from Mike Toews
+  * Improve initialization of centroids
+
+### v1.0.0 (2011-05-20)
+  * Initial version
 
 Support
 -------
