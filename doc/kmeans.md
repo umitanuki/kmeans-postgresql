@@ -1,4 +1,4 @@
-kmeans 1.0.0
+kmeans 1.1.0
 ============
 
 Synopsis
