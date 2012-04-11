@@ -11,39 +11,39 @@ Synopsis
 Description
 -----------
 
-This module implements K-means clustering algorithm as a
+This module implements the K-means clustering algorithm as a
 user-defined window function in PostgreSQL. K-means clustering
-is a simple way to classify data set by N-dimension vector.
+is a simple way to classify a data set by an N-dimensional vector.
 
 It is known that the algorithm depends on how to define
-initial mean vectors. So the module provides two singature,
+initial mean vectors. So the module provides two signatures,
 one for auto-initialization and the other for user-given
 initial vectors.
 
-The `kmeans` function calculates and returns class number which starts from
+The `kmeans` function calculates and returns a class number which starts from
 0, by using input vectors. The first argument is the vector, represented
-by array of float8. You must give the same-length 1-dimension array across
-all the input rows. The second argument is an integer K in "K-means", the
+by an array of float8. You must give the same-length 1-dimensional array across
+all the input rows. The second argument is the integer K in "K-means", the
 number of class you want to partition. The third argument is optional,
-an array of vector which represents initial mean vectors. Since the
+an array of vectors which represents initial mean vectors. Since the
 algorithm is sensitive with initial mean vectors, and although the function
 calculates them by input vectors in the first form, you may sometimes want
-to give fixed mean vectors. The vectors can be passed as 1-d array or 2-d
-array of float8. In case of 1-d, the length of it must match k * lengthof(vector).
+to give fixed mean vectors. The vectors can be passed as a 1-d array or 2-d
+array of float8. In the case of 1-d, its length must match k * lengthof(vector).
 
 If the third argument, initial centroids, is not given, it scans
-all the input vectors and stores min/max for each element of vector.
-Then decide initial hypothetical vector elements by the next formula:
+all the input vectors and stores min/max for each element of the vector.
+Then it decides initial hypothetical vector elements by the next formula:
 
     init = (max - min) * (i + 1) / (k + 1) + min
 
-where `i` varies from 0 to k-1. This means that the vector elements
-are decided as the liner interpolation from min to max divided by k.
+where `i` varies from 0 to k-1. This means that the vector of elements
+are decided as the linear interpolation from min to max divided by k.
 Then one of the input vectors nearest to this hypothetical vector
 is picked up as the centroid. Note that input vector is not picked
-more than twice as far as possible, to gain good result.
+more than twice as far as possible, to gain a good result.
 
-See input/kmeans.source as an example to call the function.
+See input/kmeans.source as an example for how to call the function.
 
 History
 -------

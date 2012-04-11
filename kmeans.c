@@ -186,7 +186,7 @@ initialize_mean(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 	sidx = 0;
 	for (klass = 0; klass < k; klass++)
 	{
-		float8	curr_dist, dist;
+		float8	curr_dist = 0.0, dist;
 		int		curr_idx = 0;
 
 		/*
@@ -313,7 +313,7 @@ kmeans_impl(PG_FUNCTION_ARGS, bool initial_mean_supplied)
 		myvector	inputs, mean, maxlist, minlist;
 		int		   *r;
 		int			i, a;
-		ArrayType  *x;
+		ArrayType  *x = NULL;
 
 		arg = WinGetFuncArgCurrent(winobj, 0, &isnull);
 		if (!isnull)
