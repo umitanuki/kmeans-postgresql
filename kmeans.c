@@ -1,5 +1,6 @@
 #include "postgres.h"
 
+#include <float.h>
 #include <math.h>
 
 #include "fmgr.h"
@@ -285,7 +286,7 @@ calc_kmeans(myvector inputs, int dim, int N, int k, myvector mean, int *r)
 		 * if all the classification stay, diff must be 0.0,
 		 * which means we can go out!
 		 */
-		if (target == new_target)
+		if (fabs(target - new_target) < DBL_EPSILON)
 			break;
 		target = new_target;
 	}
