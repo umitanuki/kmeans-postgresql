@@ -1,0 +1,70 @@
+---
+dist: xenial
+
+language: minimal
+
+matrix:
+  include:
+    - postgresql: "9.5"
+      env: tag=postgresql-9.5
+      addons:
+        apt:
+          packages:
+            - postgresql-9.5
+            - postgresql-client-9.5
+            - postgresql-server-dev-9.5
+
+    - postgresql: "9.6"
+      env: tag=postgresql-9.6
+      addons:
+        apt:
+          packages:
+            - postgresql-9.6
+            - postgresql-client-9.6
+            - postgresql-server-dev-9.6
+
+    - postgresql: "10"
+      env: tag=postgresql-10
+      addons:
+        apt:
+          packages:
+            - postgresql-10
+            - postgresql-client-10
+            - postgresql-server-dev-10
+
+    - postgresql: "11"
+      env: tag=postgresql-11
+      addons:
+        apt:
+          packages:
+            - postgresql-11
+            - postgresql-client-11
+            - postgresql-server-dev-11
+
+    - postgresql: "12"
+      env: tag=postgresql-12
+      addons:
+        apt:
+          packages:
+            - postgresql-12
+            - postgresql-client-12
+            - postgresql-server-dev-12
+
+before_install:
+  - sudo su - postgres -c "createuser --superuser $USER"
+  - createdb
+
+install:
+  - make USE_PGXS=1
+  - sudo make install
+
+script:
+  - psql -c "CREATE EXTENSION kmeans"
+  - psql -f test_xy.sql
+  - psql -c "SELECT kmeans, count(*) FROM (
+               SELECT kmeans(ARRAY[x, y], 5) OVER () FROM test_xy) AS ksub
+             GROUP BY kmeans
+             ORDER BY kmeans"
+
+notifications:
+  email: false
